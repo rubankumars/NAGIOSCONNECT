@@ -7,10 +7,10 @@ import java.util.*;
 public class InjectedTest extends junit.framework.TestCase {
   public static junit.framework.Test suite() throws Exception {
     Map parameters = new HashMap();
-    parameters.put("basedir","/home/ruban/Desktop/NagiosConnect");
+    parameters.put("basedir","/home/ruban/NAGIOSCONNECT/NagiosConnect");
     parameters.put("artifactId","NagiosConnect");
-    parameters.put("outputDirectory","/home/ruban/Desktop/NagiosConnect/target/classes");
-    parameters.put("testOutputDirectory","/home/ruban/Desktop/NagiosConnect/target/test-classes");
+    parameters.put("outputDirectory","/home/ruban/NAGIOSCONNECT/NagiosConnect/target/classes");
+    parameters.put("testOutputDirectory","/home/ruban/NAGIOSCONNECT/NagiosConnect/target/test-classes");
     parameters.put("requirePI","false");
     return new org.jvnet.hudson.test.PluginAutomaticTestBuilder().build(parameters);
   }

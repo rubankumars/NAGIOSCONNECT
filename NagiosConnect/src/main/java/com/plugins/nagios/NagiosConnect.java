@@ -14,6 +14,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.ParseException;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -23,6 +25,16 @@ import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.util.Date;
 import java.util.Calendar;
 import java.text.SimpleDateFormat;
@@ -65,69 +77,85 @@ public class NagiosConnect extends Builder {
     public String getNagiosStatus(){
 	return nagiosStatus;
     }
-    
+
+	static TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+       		 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            		return null;
+       		 }	
+        	 public void checkClientTrusted(X509Certificate[] certs, String authType) {
+        	 }
+        	 public void checkServerTrusted(X509Certificate[] certs, String authType) {
+        	 }
+    	}
+      };
 	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password) {
 		  HttpURLConnection connection = null; 
 			final String username = user;
 			final String pass = password;
+
 		  try {
-		    //Create connection
-		    URL url = new URL(NAGIOSURL);
-		    Authenticator.setDefault (new Authenticator() {
-		        protected PasswordAuthentication getPasswordAuthentication() {
-		            return new PasswordAuthentication (username, pass.toCharArray());
-		        }
-		    });
-		    connection = (HttpURLConnection)url.openConnection();
-		    connection.setRequestMethod("POST");
-		    connection.setRequestProperty("Content-Type", 
+	                // Install the all-trusting trust manager
+		        SSLContext sc = SSLContext.getInstance("SSL");
+		        sc.init(null, trustAllCerts, new java.security.SecureRandom());
+		        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory()); 
+		        
+		        // Create all-trusting host name verifier
+		        HostnameVerifier allHostsValid = new HostnameVerifier() {
+		            public boolean verify(String hostname, SSLSession session) {
+		                return true;
+		            }
+		        };
+		        
+		        // Install the all-trusting host verifier
+		        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+		    	//Create connection
+		    	URL url = new URL(NAGIOSURL);
+		    	Authenticator.setDefault (new Authenticator() {
+		        	protected PasswordAuthentication getPasswordAuthentication() {
+		            	return new PasswordAuthentication (username, pass.toCharArray());
+		        	}
+		   	});
+		    
+		    	connection = (HttpURLConnection)url.openConnection();
+		    	connection.setRequestMethod("POST");
+		    	connection.setRequestProperty("Content-Type", 
 		        "application/x-www-form-urlencoded");
+		    	connection.setRequestProperty("Content-Length",Integer.toString(URLPARAMETER.getBytes().length));
+		    	connection.setRequestProperty("Content-Language", "en-US");  
+		    	connection.setUseCaches(false);
+		    	connection.setDoOutput(true);
 
-		    connection.setRequestProperty("Content-Length",Integer.toString(URLPARAMETER.getBytes().length));
-		    connection.setRequestProperty("Content-Language", "en-US");  
-
-		    connection.setUseCaches(false);
-		    connection.setDoOutput(true);
-
-		    //Send request
-		    DataOutputStream wr = new DataOutputStream (
+		    	//Send request
+		    	DataOutputStream wr = new DataOutputStream (
 		        connection.getOutputStream());
-		    wr.writeBytes(URLPARAMETER);
-		    wr.close();
+		    	wr.writeBytes(URLPARAMETER);
+		    	wr.close();
 
-		    //Get Response  
-		    InputStream is = connection.getInputStream();
-		    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-		    StringBuilder response = new StringBuilder(); // or StringBuffer if not Java 5+ 
-		    String line;
-		    while((line = rd.readLine()) != null) {
-		      response.append(line);
-		      response.append('\r');
-		    }
-		    rd.close();
-		    return response.toString();
-		  } catch (Exception e) {
-		    e.printStackTrace();
-		    return null;
-		  } finally {
-		    if(connection != null) {
-		      connection.disconnect(); 
-		    }
-		  }
+		    	//Get Response  
+		    	InputStream is = connection.getInputStream();
+		    	BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+		  	StringBuffer response = new StringBuffer();
+		    	String line;
+		    	while((line = rd.readLine()) != null) {
+		      		response.append(line);
+		      		response.append('\r');
+		      	}
+		    	rd.close();
+		    	return response.toString();
+		  	} catch (Exception e) {
+				StringWriter errors =  new StringWriter();
+				e.printStackTrace(new PrintWriter(errors));
+				return errors.toString();
+		  	} finally {
+		    		if(connection != null) {
+		      		connection.disconnect(); 
+		    	}
+		  	}
 		}
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-        // This is where you 'build' the project.
-        // Since this is a dummy, we just say 'hello world' and call that a build.
-
-        // This also shows how you can consult the global configuration of the builder
-        //if (getDescriptor().getUseFrench())
-          ///  listener.getLogger().println("Bonjour, "+name+"!");
-        ///else
-	    listener.getLogger().println(getDescriptor().getNagiosUrl());
-	    listener.getLogger().println(getDescriptor().getNagiosUser());
-	    listener.getLogger().println(getDescriptor().getNagiosPassword());
             listener.getLogger().println("ServerName you have entered is " + servername);
             listener.getLogger().println("JobName you have entered is " + jobname);
             listener.getLogger().println("Minutes you have entered is " + minutes);
@@ -144,9 +172,11 @@ public class NagiosConnect extends Builder {
 	    String startDate = format.format(now);
 		Date advanceTime = null;
 		try{
-		advanceTime = format.parse(startDate);
+			advanceTime = format.parse(startDate);
 		}catch (ParseException e) {
-		e.printStackTrace();
+                        StringWriter errors =  new StringWriter();
+                        e.printStackTrace(new PrintWriter(errors));
+			listener.getLogger().println(errors.toString());
 		} 
 	    Calendar cal = Calendar.getInstance();
 	    cal.setTime(advanceTime);
@@ -156,14 +186,12 @@ public class NagiosConnect extends Builder {
             listener.getLogger().println("StartDate " + startDate);
             listener.getLogger().println("EndDate " + endDate);
 
-	if(nagiosStatus.equals("nagiosPause")){
-	    
-//	        final String NAGIOSURL = url + "/cgi-bin/cmd.cgi";
-                String URLPARAMETER = "cmd_typ=56&cmd_mod=2&host="+servername+"&service="+jobname+"&com_data=Build and Deploy is in progress&trigger=0&start_time="+startDate+"&end_time="+endDate+"&fixed=1&hours=2&minutes=0&btnSubmit=Commit";
-                listener.getLogger().println(excutePost(NAGIOSURL,URLPARAMETER,user,password));
+		if(nagiosStatus.equals("nagiosPause")){
+                	String URLPARAMETER = "cmd_typ=56&cmd_mod=2&host="+servername+"&service="+jobname+"&com_data=Build and Deploy is in progress&trigger=0&start_time="+startDate+"&end_time="+endDate+"&fixed=1&hours=2&minutes=0&btnSubmit=Commit";
+                	listener.getLogger().println(excutePost(NAGIOSURL,URLPARAMETER,user,password));
 
-	}
-	else if (nagiosStatus.equals("nagiosStart")){
+		}
+		else if (nagiosStatus.equals("nagiosStart")){
 			final String NAGIOSURL_DOWNID = url + "/cgi-bin/extinfo.cgi";
 			String URLPARAMETER = "type=6";
 			String output=excutePost(NAGIOSURL_DOWNID,URLPARAMETER,user,password);
@@ -183,20 +211,14 @@ public class NagiosConnect extends Builder {
     }
 
     // Overridden for better type safety.
-    // If your plugin doesn't really define any property on Descriptor,
-    // you don't have to do this.
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
     }
 
     /**
-     * Descriptor for {@link HelloWorldBuilder}. Used as a singleton.
+     * Descriptor for {@link NagiosConnect}. Used as a singleton.
      * The class is marked as public so that it can be accessed from views.
-     *
-     * <p>
-     * See <tt>src/main/resources/hudson/plugins/hello_world/HelloWorldBuilder/*.jelly</tt>
-     * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
@@ -211,7 +233,6 @@ public class NagiosConnect extends Builder {
         private String nagiosUser;
         private String nagiosPassword;
 
-
         /**
          * Performs on-the-fly validation of the form field 'name'.
          *
@@ -224,8 +245,6 @@ public class NagiosConnect extends Builder {
                 throws IOException, ServletException {
             if (value.length() == 0)
                 return FormValidation.error("Please set a name");
-            if (value.length() < 4)
-                return FormValidation.warning("Isn't the name too short?");
             return FormValidation.ok();
         }
 
@@ -248,17 +267,14 @@ public class NagiosConnect extends Builder {
             nagiosUrl = formData.getString("nagiosUrl");
 	    nagiosUser = formData.getString("nagiosUser");
 	    nagiosPassword = formData.getString("nagiosPassword");
-            // ^Can also use req.bindJSON(this, formData);
-            //  (easier when there are many fields; need set* methods for this, like setUseFrench)
+            // Can also use req.bindJSON(this, formData);
+            // (easier when there are many fields; need set* methods for this)
             save();
             return super.configure(req,formData);
         }
 
         /**
-         * This method returns true if the global configuration says we should speak French.
-         *
-         * The method name is bit awkward because global.jelly calls this method to determine
-         * the initial state of the checkbox by the naming convention.
+         * This method returns the global configuration values set for NAGIOS configuration
          */
        public String getNagiosUrl() {
          return nagiosUrl;
