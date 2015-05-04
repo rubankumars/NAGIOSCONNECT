@@ -13,12 +13,12 @@
   -->
   <f:section title="Configure Nagios">
           <f:section title="NAGIOS">
-         <f:entry title="Nagios URL" field="nagiosUrl"
+         <f:entry title="Nagios URL" help="/descriptor/com.plugins.nagios.NagiosConnect/help/nagiosurl" field="nagiosUrl"
          description="Add Nagios URL">
          <f:textbox />
         </f:entry>
  <!-- 
-	<f:entry title="Username">
+	<f:entry title="Username" help="/descriptor/com.plugins.nagios.NagiosConnect/help/user">
          <f:textbox name="nagiosUser"/>
         Add Nagios User
        </f:entry>
@@ -27,12 +27,12 @@
          Add Nagios Password
         </f:entry>
 -->
-	<f:entry title="Username" field="nagiosUser"
+	<f:entry title="Username" help="/descriptor/com.plugins.nagios.NagiosConnect/help/user" field="nagiosUser"
          description="Add Nagios User">
          <f:textbox />
         </f:entry>
 
-         <f:entry title="Password" field="nagiosPassword"
+         <f:entry title="Password" help="/descriptor/com.plugins.nagios.NagiosConnect/help/pass" field="nagiosPassword"
          description="Add Nagios Password">
          <f:password />
         </f:entry>

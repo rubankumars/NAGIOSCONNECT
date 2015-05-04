@@ -9,18 +9,18 @@
     Creates a text field that shows the value of the "name" property.
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
-  <f:entry title="Server Name" field="servername">
+  <f:entry title="Server Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/servername" field="servername">
     <f:textbox />
   </f:entry>
-  <f:entry title="Job Name" field="jobname">
+  <f:entry title="Job Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/jobname" field="jobname">
     <f:textbox />
   </f:entry>
-  <f:entry title="Job Holdtime (in min(s))" field="minutes"
+  <f:entry title="Job Holdtime (in min(s))" help="/descriptor/com.plugins.nagios.NagiosConnect/help/minutes" field="minutes"
     description="This field will be considered only for pausing a service">
 	<f:textbox />
   </f:entry>
         
-	<f:entry title="Do you want to start/pause the service?">
+	<f:entry title="Do you want to start/pause the service?" help="/descriptor/com.plugins.nagios.NagiosConnect/help/state">
         <select name ="nagiosStatus">
                 <f:option value="nagiosStart" selected="nagiosStart">Start the service</f:option>
                 <f:option value="nagiosPause" selected="nagiosPause">Pause the service</f:option>

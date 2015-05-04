@@ -1,0 +1,52 @@
+Exploding /root/.m2/repository/org/jenkins-ci/main/jenkins-war/1.611/jenkins-war-1.611-war-for-test.jar into /home/ruban/NAGIOSCONNECT/NagiosConnect/target/jenkins-for-test
+May 04, 2015 11:32:33 PM org.mortbay.log.Slf4jLog info
+INFO: Logging to org.slf4j.impl.JDK14LoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+May 04, 2015 11:32:33 PM org.mortbay.log.Slf4jLog info
+INFO: jetty-6.1.26
+May 04, 2015 11:32:33 PM org.mortbay.log.Slf4jLog info
+INFO: NO JSP Support for , did not find org.apache.jasper.servlet.JspServlet
+May 04, 2015 11:32:34 PM org.mortbay.log.Slf4jLog info
+INFO: Started SocketConnector@0.0.0.0:52513
+May 04, 2015 11:32:34 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Started initialization
+May 04, 2015 11:32:41 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Listed all plugins
+May 04, 2015 11:32:41 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Prepared all plugins
+May 04, 2015 11:32:41 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Started all plugins
+May 04, 2015 11:32:41 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Augmented all extensions
+May 04, 2015 11:32:44 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Loaded all jobs
+May 04, 2015 11:32:45 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Completed initialization
+May 04, 2015 11:32:46 PM org.mortbay.log.Slf4jLog info
+INFO: jetty-6.1.26
+May 04, 2015 11:32:46 PM org.mortbay.log.Slf4jLog info
+INFO: Started SocketConnector@0.0.0.0:46835
+May 04, 2015 11:32:47 PM org.mortbay.log.Slf4jLog info
+INFO: Stopped SocketConnector@0.0.0.0:52513
+May 04, 2015 11:32:48 PM org.mortbay.log.Slf4jLog info
+INFO: jetty-6.1.26
+May 04, 2015 11:32:48 PM org.mortbay.log.Slf4jLog info
+INFO: NO JSP Support for , did not find org.apache.jasper.servlet.JspServlet
+May 04, 2015 11:32:48 PM org.mortbay.log.Slf4jLog info
+INFO: Started SocketConnector@0.0.0.0:53879
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Started initialization
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Listed all plugins
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Prepared all plugins
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Started all plugins
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Augmented all extensions
+May 04, 2015 11:32:48 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Loaded all jobs
+May 04, 2015 11:32:49 PM jenkins.InitReactorRunner$1 onAttained
+INFO: Completed initialization
+=== Starting CliSanityTest.testCliSanity
+May 04, 2015 11:32:49 PM org.mortbay.log.Slf4jLog info
+INFO: Stopped SocketConnector@0.0.0.0:53879
