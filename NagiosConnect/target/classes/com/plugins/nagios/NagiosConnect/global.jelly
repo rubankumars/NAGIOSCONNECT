@@ -17,6 +17,13 @@
          description="Add Nagios URL">
          <f:textbox />
         </f:entry>
+
+    <f:entry title="Ignore SSL Check" field="sslCheck"
+      description="Enable this option to ignore certificate check">
+      <f:checkbox />
+    </f:entry>
+
+
  <!-- 
 	<f:entry title="Username" help="/descriptor/com.plugins.nagios.NagiosConnect/help/user">
          <f:textbox name="nagiosUser"/>

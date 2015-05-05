@@ -12,6 +12,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
+import java.net.MalformedURLException;
+import java.io.IOException;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -38,6 +40,8 @@ import javax.net.ssl.X509TrustManager;
 import java.util.Date;
 import java.util.Calendar;
 import java.text.SimpleDateFormat;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -52,6 +56,7 @@ public class NagiosConnect extends Builder {
     private final String jobname;
     int minutes = 0;
     private final String nagiosStatus;
+    static HttpURLConnection connection = null; 
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
@@ -78,6 +83,7 @@ public class NagiosConnect extends Builder {
 	return nagiosStatus;
     }
 
+	
 	static TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
        		 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
             		return null;
@@ -86,38 +92,63 @@ public class NagiosConnect extends Builder {
         	 }
         	 public void checkServerTrusted(X509Certificate[] certs, String authType) {
         	 }
-    	}
-      };
-	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password) {
-		  HttpURLConnection connection = null; 
+    	 }
+	};
+	
+	public static HttpURLConnection nagiosAuth(String NAGIOSURL,String user, String password) throws MalformedURLException, IOException{
+                        final String username = user;
+                        final String pass = password;
+		
+                        URL url = new URL(NAGIOSURL);
+                        Authenticator.setDefault (new Authenticator() {
+                                protected PasswordAuthentication getPasswordAuthentication() {
+                                return new PasswordAuthentication (username, pass.toCharArray());
+                                }
+                        });
+
+                        connection = (HttpURLConnection)url.openConnection();
+			return connection;
+		/*catch (Exception e) {
+                                StringWriter errors =  new StringWriter();
+                                e.printStackTrace(new PrintWriter(errors));
+                                return errors.toString();
+                 } */
+
+	}
+
+	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password, boolean sslCheck) {
+//		  HttpURLConnection connection = null; 
 			final String username = user;
 			final String pass = password;
-
+			final boolean ssl = sslCheck;
 		  try {
-	                // Install the all-trusting trust manager
-		        SSLContext sc = SSLContext.getInstance("SSL");
-		        sc.init(null, trustAllCerts, new java.security.SecureRandom());
-		        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory()); 
+			if (ssl){
+		                // Install the all-trusting trust manager
+			        SSLContext sc = SSLContext.getInstance("SSL");
+		       		sc.init(null, trustAllCerts, new java.security.SecureRandom());
+		        	HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory()); 
 		        
-		        // Create all-trusting host name verifier
-		        HostnameVerifier allHostsValid = new HostnameVerifier() {
-		            public boolean verify(String hostname, SSLSession session) {
-		                return true;
-		            }
-		        };
+			        // Create all-trusting host name verifier
+			        HostnameVerifier allHostsValid = new HostnameVerifier() {
+			            public boolean verify(String hostname, SSLSession session) {
+			                return true;
+			            }
+			        };
 		        
-		        // Install the all-trusting host verifier
-		        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+			        // Install the all-trusting host verifier
+			        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+			}
 
 		    	//Create connection
-		    	URL url = new URL(NAGIOSURL);
+/*		    	URL url = new URL(NAGIOSURL);
 		    	Authenticator.setDefault (new Authenticator() {
 		        	protected PasswordAuthentication getPasswordAuthentication() {
 		            	return new PasswordAuthentication (username, pass.toCharArray());
 		        	}
 		   	});
 		    
-		    	connection = (HttpURLConnection)url.openConnection();
+		    	connection = (HttpURLConnection)url.openConnection();*/
+			connection = nagiosAuth(NAGIOSURL,username,pass);
 		    	connection.setRequestMethod("POST");
 		    	connection.setRequestProperty("Content-Type", 
 		        "application/x-www-form-urlencoded");
@@ -156,7 +187,8 @@ public class NagiosConnect extends Builder {
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-            listener.getLogger().println("ServerName you have entered is " + servername);
+        
+	    listener.getLogger().println("ServerName you have entered is " + servername);
             listener.getLogger().println("JobName you have entered is " + jobname);
             listener.getLogger().println("Minutes you have entered is " + minutes);
             listener.getLogger().println("Service entered is " + nagiosStatus);
@@ -165,6 +197,7 @@ public class NagiosConnect extends Builder {
             final String user = getDescriptor().getNagiosUser();
             final String password = getDescriptor().getNagiosPassword();
 	    final String NAGIOSURL = url + "/cgi-bin/cmd.cgi";
+	    final boolean sslCheck = getDescriptor().getSslCheck();
 
 	    String pattern =  "MM-dd-yyy HH:mm:ss";
 	    SimpleDateFormat format = new SimpleDateFormat(pattern);
@@ -188,28 +221,65 @@ public class NagiosConnect extends Builder {
 
 		if(nagiosStatus.equals("nagiosPause")){
                 	String URLPARAMETER = "cmd_typ=56&cmd_mod=2&host="+servername+"&service="+jobname+"&com_data=Build and Deploy is in progress&trigger=0&start_time="+startDate+"&end_time="+endDate+"&fixed=1&hours=2&minutes=0&btnSubmit=Commit";
-                	listener.getLogger().println(excutePost(NAGIOSURL,URLPARAMETER,user,password));
+                	String data = excutePost(NAGIOSURL,URLPARAMETER,user,password,sslCheck);
+		 		
+				if (data.contains("Your command request was successfully submitted to Nagios for processing")){
+        	 			listener.getLogger().println(minutes+" min(s) downtime has been scheduled for the service '"+jobname+"' on server '"+servername+"'");
+         			}else if (data.contains("errorMessage")){
+        	 			for(int index = data.indexOf("errorMessage");index>=0; index = data.indexOf("errorMessage", index+1))
+             				{
+        		 	 		listener.getLogger().println("We got the below error message from NAGIOS, please check your configuration...\n");
+                     				String error = data.substring(index+14, index+80);
+                     				listener.getLogger().println(error);
+             				}
 
+				}else{
+					listener.getLogger().println(data);
+				}
 		}
 		else if (nagiosStatus.equals("nagiosStart")){
 			final String NAGIOSURL_DOWNID = url + "/cgi-bin/extinfo.cgi";
 			String URLPARAMETER = "type=6";
-			String output=excutePost(NAGIOSURL_DOWNID,URLPARAMETER,user,password);
+			String output=excutePost(NAGIOSURL_DOWNID,URLPARAMETER,user,password,sslCheck);
 			for(int index = output.indexOf("down_id");index>=0; index = output.indexOf("down_id", index+1))
 			{
 				String a = output.substring(index-500, index+15);
 				if ( (a.indexOf(servername)>-1) && (a.indexOf(jobname)>-1) ){
 				String b = output.substring(index, index+20);
 				String downtime_ID =  (b.substring(8, b.indexOf("'><"))).trim();
-				listener.getLogger().println(downtime_ID);
 				String URLPARAMETER_DEL = "cmd_mod=2&cmd_typ=79&down_id="+downtime_ID+"btnSubmit=Commit";
-				listener.getLogger().println(excutePost(NAGIOSURL,URLPARAMETER_DEL,user,password));		
+				String data = excutePost(NAGIOSURL,URLPARAMETER_DEL,user,password,sslCheck);		
+			
+                                if (data.contains("Your command request was successfully submitted to Nagios for processing")){
+                                        listener.getLogger().println("Downtime ID - " + downtime_ID+ " with reference to the service '"+jobname+"' and the server '"+servername+"' is enabled for notification");
+                                }else if (data.contains("errorMessage")){
+                                        for(int erridx = data.indexOf("errorMessage");erridx>=0; index = data.indexOf("errorMessage", erridx+1))
+                                        {
+                                                listener.getLogger().println("We got the below error message from NAGIOS, please check your configuration...\n");
+                                                String error = data.substring(erridx+14, erridx+80);
+                                                listener.getLogger().println(error);
+                                        }
+
+                                }else{
+                                        listener.getLogger().println(data);
+                                }
+
 				}
 			}
-	}
+	       }
 	return true;
     }
 
+	private static boolean IsMatch(String s, String pattern) {
+        	try {
+            		Pattern patt = Pattern.compile(pattern);
+            		Matcher matcher = patt.matcher(s);
+	                return matcher.matches();
+	        } catch (RuntimeException e) {
+		        return false;
+	    	}       
+	}
+	
     // Overridden for better type safety.
     @Override
     public DescriptorImpl getDescriptor() {
@@ -232,6 +302,7 @@ public class NagiosConnect extends Builder {
         private String nagiosUrl;
         private String nagiosUser;
         private String nagiosPassword;
+	private boolean sslCheck;
 
         /**
          * Performs on-the-fly validation of the form field 'name'.
@@ -241,11 +312,18 @@ public class NagiosConnect extends Builder {
          * @return
          *      Indicates the outcome of the validation. This is sent to the browser.
          */
-        public FormValidation doCheckName(@QueryParameter String value)
-                throws IOException, ServletException {
-            if (value.length() == 0)
-                return FormValidation.error("Please set a name");
-            return FormValidation.ok();
+        public FormValidation doCheckName(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser, @QueryParameter String nagiosPassword) throws IOException, ServletException {
+	
+	String URL_PATTERN = "^(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
+
+	            if (nagiosUrl.length() > 0)
+			 connection = nagiosAuth(nagiosUrl,nagiosUser,nagiosPassword);
+				 if((connection.getResponseMessage().equals("OK")) && (IsMatch(nagiosUrl,URL_PATTERN)))
+					return FormValidation.ok();				
+				 
+				else 
+					return FormValidation.error(connection.getResponseMessage());
+	    	     
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
@@ -267,6 +345,7 @@ public class NagiosConnect extends Builder {
             nagiosUrl = formData.getString("nagiosUrl");
 	    nagiosUser = formData.getString("nagiosUser");
 	    nagiosPassword = formData.getString("nagiosPassword");
+	    sslCheck =  formData.getBoolean("sslCheck");
             // Can also use req.bindJSON(this, formData);
             // (easier when there are many fields; need set* methods for this)
             save();
@@ -286,6 +365,10 @@ public class NagiosConnect extends Builder {
 
        public String getNagiosPassword() {
          return nagiosPassword;
+       }
+
+       public boolean getSslCheck() {
+         return sslCheck;
        }
 
     }

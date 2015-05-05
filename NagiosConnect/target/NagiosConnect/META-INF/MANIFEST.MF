@@ -9,7 +9,7 @@ Group-Id: com.plugins.nagios
 Short-Name: NagiosConnect
 Long-Name: NagiosConnect
 Url: http://jenkins-ci.org/plugin/NagiosConnect/
-Plugin-Version: 1.0-SNAPSHOT (private-bfcbf69e-root)
+Plugin-Version: 1.0-SNAPSHOT (private-0b85f21b-root)
 Hudson-Version: 1.611
 Jenkins-Version: 1.611
 Plugin-Developers: 
