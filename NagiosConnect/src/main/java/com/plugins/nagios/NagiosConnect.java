@@ -1,4 +1,5 @@
 package com.plugins.nagios;
+
 import hudson.Launcher;
 import hudson.Extension;
 import hudson.util.FormValidation;
@@ -12,41 +13,43 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
-import java.net.MalformedURLException;
-import java.io.IOException;
 import javax.servlet.ServletException;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.ParseException;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;	
+import java.text.ParseException;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.net.UnknownHostException;
+import java.net.MalformedURLException;
+import java.lang.NullPointerException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.util.Date;
-import java.util.Calendar;
 import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Date;
+import java.util.Calendar;
 
 /**
  *
  * @author Rubankumar
- * @email ruban.yuvaraj@gmail.com
+ * @Email ruban.yuvaraj@gmail.com
  *
  */
 
@@ -58,7 +61,7 @@ public class NagiosConnect extends Builder {
     private final String nagiosStatus;
     static HttpURLConnection connection = null; 
 
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
+    //Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
     public NagiosConnect(String servername, String jobname, int minutes, String nagiosStatus) {
         this.servername = servername;
@@ -83,7 +86,7 @@ public class NagiosConnect extends Builder {
 	return nagiosStatus;
     }
 
-	
+	//Create all-trusting trust manager
 	static TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
        		 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
             		return null;
@@ -94,60 +97,63 @@ public class NagiosConnect extends Builder {
         	 }
     	 }
 	};
-	
+
+	public static void sslIgnore() throws KeyManagementException, NoSuchAlgorithmException{
+        //Install the all-trusting trust manager
+        SSLContext sc;
+		try {
+			sc = SSLContext.getInstance("SSL");
+			sc.init(null, trustAllCerts, new java.security.SecureRandom());
+			HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		} catch (NoSuchAlgorithmException e) {
+			throw e;
+	 	}catch (KeyManagementException e) {
+			throw e;
+		}
+
+        //Create all-trusting host name verifier
+        HostnameVerifier allHostsValid = new HostnameVerifier() {
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        };
+        //Install the all-trusting host verifier
+        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+	}
+
+	//Authenticates Nagios application and create a connection
 	public static HttpURLConnection nagiosAuth(String NAGIOSURL,String user, String password) throws MalformedURLException, IOException{
                         final String username = user;
                         final String pass = password;
-		
-                        URL url = new URL(NAGIOSURL);
+		        URL url = null;
+			try {
+				url = new URL(NAGIOSURL);
+			}catch (MalformedURLException e) {
+				throw e;
+			}
                         Authenticator.setDefault (new Authenticator() {
                                 protected PasswordAuthentication getPasswordAuthentication() {
                                 return new PasswordAuthentication (username, pass.toCharArray());
                                 }
                         });
-
+			try{
                         connection = (HttpURLConnection)url.openConnection();
+			}catch(IOException e){
+				throw e;
+			}
 			return connection;
-		/*catch (Exception e) {
-                                StringWriter errors =  new StringWriter();
-                                e.printStackTrace(new PrintWriter(errors));
-                                return errors.toString();
-                 } */
-
 	}
 
-	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password, boolean sslCheck) {
-//		  HttpURLConnection connection = null; 
+	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password, boolean sslCheck) throws Exception{
 			final String username = user;
 			final String pass = password;
 			final boolean ssl = sslCheck;
 		  try {
-			if (ssl){
-		                // Install the all-trusting trust manager
-			        SSLContext sc = SSLContext.getInstance("SSL");
-		       		sc.init(null, trustAllCerts, new java.security.SecureRandom());
-		        	HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory()); 
-		        
-			        // Create all-trusting host name verifier
-			        HostnameVerifier allHostsValid = new HostnameVerifier() {
-			            public boolean verify(String hostname, SSLSession session) {
-			                return true;
-			            }
-			        };
-		        
-			        // Install the all-trusting host verifier
-			        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
-			}
-
-		    	//Create connection
-/*		    	URL url = new URL(NAGIOSURL);
-		    	Authenticator.setDefault (new Authenticator() {
-		        	protected PasswordAuthentication getPasswordAuthentication() {
-		            	return new PasswordAuthentication (username, pass.toCharArray());
-		        	}
-		   	});
-		    
-		    	connection = (HttpURLConnection)url.openConnection();*/
+			
+			if (ssl)
+				//Calling sslIgnore method to bypass ssl hand shake
+				sslIgnore();  
+			
 			connection = nagiosAuth(NAGIOSURL,username,pass);
 		    	connection.setRequestMethod("POST");
 		    	connection.setRequestProperty("Content-Type", 
@@ -175,9 +181,10 @@ public class NagiosConnect extends Builder {
 		    	rd.close();
 		    	return response.toString();
 		  	} catch (Exception e) {
-				StringWriter errors =  new StringWriter();
-				e.printStackTrace(new PrintWriter(errors));
-				return errors.toString();
+				throw e;
+			//	StringWriter errors =  new StringWriter();
+			//	e.printStackTrace(new PrintWriter(errors));
+			//	return errors.toString();
 		  	} finally {
 		    		if(connection != null) {
 		      		connection.disconnect(); 
@@ -192,13 +199,15 @@ public class NagiosConnect extends Builder {
             listener.getLogger().println("JobName you have entered is " + jobname);
             listener.getLogger().println("Minutes you have entered is " + minutes);
             listener.getLogger().println("Service entered is " + nagiosStatus);
-
+	    
+	    //Assining the global form values to a local variables
             final String url = getDescriptor().getNagiosUrl();
             final String user = getDescriptor().getNagiosUser();
             final String password = getDescriptor().getNagiosPassword();
 	    final String NAGIOSURL = url + "/cgi-bin/cmd.cgi";
 	    final boolean sslCheck = getDescriptor().getSslCheck();
-
+	    
+            //Fetch current system date and time, advance it by so and so minutes as given by user 
 	    String pattern =  "MM-dd-yyy HH:mm:ss";
 	    SimpleDateFormat format = new SimpleDateFormat(pattern);
 	    Date now = new Date();
@@ -218,28 +227,39 @@ public class NagiosConnect extends Builder {
 
             listener.getLogger().println("StartDate " + startDate);
             listener.getLogger().println("EndDate " + endDate);
+	    
+	    String successMsg = "Your command request was successfully submitted to Nagios for processing";
+	    String errorMsg = "We got the below error message from NAGIOS, please check your configuration...";
+	    String comment = "Paused by Jenkins";
 
+	    //nagiosPause condition will be executed if the user choose the Pause service in the form 
 		if(nagiosStatus.equals("nagiosPause")){
-                	String URLPARAMETER = "cmd_typ=56&cmd_mod=2&host="+servername+"&service="+jobname+"&com_data=Build and Deploy is in progress&trigger=0&start_time="+startDate+"&end_time="+endDate+"&fixed=1&hours=2&minutes=0&btnSubmit=Commit";
-                	String data = excutePost(NAGIOSURL,URLPARAMETER,user,password,sslCheck);
+
+                	String URLPARAMETER = "cmd_typ=56&cmd_mod=2&host="+servername+"&service="+jobname+"&com_data="+comment								+"&trigger=0&start_time="+startDate+"&end_time="+endDate+"&fixed=1&hours=2&minutes=0&btnSubmit=Commit";
+			String data = null;
+			try{
+                		data = excutePost(NAGIOSURL,URLPARAMETER,user,password,sslCheck);
 		 		
-				if (data.contains("Your command request was successfully submitted to Nagios for processing")){
-        	 			listener.getLogger().println(minutes+" min(s) downtime has been scheduled for the service '"+jobname+"' on server '"+servername+"'");
+				if (data.contains(successMsg)){
+        	 			listener.getLogger().println(minutes+" min(s) downtime has been scheduled for the service '"+jobname							+"' on server '"+servername+"'");
          			}else if (data.contains("errorMessage")){
+					listener.getLogger().println(errorMsg);
         	 			for(int index = data.indexOf("errorMessage");index>=0; index = data.indexOf("errorMessage", index+1))
              				{
-        		 	 		listener.getLogger().println("We got the below error message from NAGIOS, please check your configuration...\n");
                      				String error = data.substring(index+14, index+80);
                      				listener.getLogger().println(error);
              				}
-
-				}else{
-					listener.getLogger().println(data);
-				}
+				 }
+			}catch(Exception e){
+				listener.getLogger().println(e.getMessage());
+			}
 		}
+
+	     //nagiosStart condition will be executed if the user choose the Start service in the form
 		else if (nagiosStatus.equals("nagiosStart")){
 			final String NAGIOSURL_DOWNID = url + "/cgi-bin/extinfo.cgi";
 			String URLPARAMETER = "type=6";
+			try{
 			String output=excutePost(NAGIOSURL_DOWNID,URLPARAMETER,user,password,sslCheck);
 			for(int index = output.indexOf("down_id");index>=0; index = output.indexOf("down_id", index+1))
 			{
@@ -250,33 +270,35 @@ public class NagiosConnect extends Builder {
 				String URLPARAMETER_DEL = "cmd_mod=2&cmd_typ=79&down_id="+downtime_ID+"btnSubmit=Commit";
 				String data = excutePost(NAGIOSURL,URLPARAMETER_DEL,user,password,sslCheck);		
 			
-                                if (data.contains("Your command request was successfully submitted to Nagios for processing")){
-                                        listener.getLogger().println("Downtime ID - " + downtime_ID+ " with reference to the service '"+jobname+"' and the server '"+servername+"' is enabled for notification");
+                                if (data.contains(successMsg)){
+                                        listener.getLogger().println("Downtime ID - " + downtime_ID+ " with reference to the service '"+jobname							+"' and the server '"+servername+"' is enabled for notification");
                                 }else if (data.contains("errorMessage")){
                                         for(int erridx = data.indexOf("errorMessage");erridx>=0; index = data.indexOf("errorMessage", erridx+1))
                                         {
-                                                listener.getLogger().println("We got the below error message from NAGIOS, please check your configuration...\n");
+                                                listener.getLogger().println(errorMsg + "\n");
                                                 String error = data.substring(erridx+14, erridx+80);
                                                 listener.getLogger().println(error);
                                         }
 
-                                }else{
-                                        listener.getLogger().println(data);
-                                }
-
+                                      }
 				}
 			}
+			}catch(Exception e){
+                               listener.getLogger().println(e.getMessage());
+                        }
 	       }
 	return true;
     }
 
+	//IsMatch method will be called by FormValidation to validate the URL entered against a generic URL pattern 
 	private static boolean IsMatch(String s, String pattern) {
         	try {
             		Pattern patt = Pattern.compile(pattern);
             		Matcher matcher = patt.matcher(s);
 	                return matcher.matches();
 	        } catch (RuntimeException e) {
-		        return false;
+//		        return false;
+			throw e;
 	    	}       
 	}
 	
@@ -305,26 +327,78 @@ public class NagiosConnect extends Builder {
 	private boolean sslCheck;
 
         /**
-         * Performs on-the-fly validation of the form field 'name'.
+         * Performs on-the-fly validation of the form fields.
          *
-         * @param value
+         * @param nagiosUrl
          *      This parameter receives the value that the user has typed.
          * @return
          *      Indicates the outcome of the validation. This is sent to the browser.
          */
-        public FormValidation doCheckName(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser, @QueryParameter String nagiosPassword) throws IOException, ServletException {
-	
+        public FormValidation doCheckNagiosUrl(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser, 						@QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck) throws Exception, IOException, ServletException {	
 	String URL_PATTERN = "^(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
+	String syntax = "Syntax should be http://nagios_hostname/nagios (or) https://nagios_hostname/nagios";
+		if (nagiosUrl.length() == 0)
+                        return FormValidation.error("Enter the Nagios URL");
 
-	            if (nagiosUrl.length() > 0)
-			 connection = nagiosAuth(nagiosUrl,nagiosUser,nagiosPassword);
-				 if((connection.getResponseMessage().equals("OK")) && (IsMatch(nagiosUrl,URL_PATTERN)))
-					return FormValidation.ok();				
-				 
-				else 
-					return FormValidation.error(connection.getResponseMessage());
-	    	     
-        }
+		if(sslCheck)
+			sslIgnore();
+
+                try{
+                    connection = nagiosAuth(nagiosUrl,nagiosUser,nagiosPassword);
+                         if(!(connection.getResponseMessage().equals("OK")))
+                                        return FormValidation.error(connection.getResponseMessage());                             
+                         if(!(IsMatch(nagiosUrl,URL_PATTERN)))
+                        		return FormValidation.error(syntax);
+
+                   }catch(UnknownHostException e){
+                                        return FormValidation.error("UnknownHostException: unable to find the host - " + e.getMessage());
+		   }catch(NullPointerException ex1){
+                                        return FormValidation.error(ex1.getMessage());
+                   }catch(MalformedURLException ex2){
+                                        return FormValidation.error("Malformed URL: " + ex2.getMessage()+ "\n"+syntax);
+		   }catch(Exception ex3){
+                                        return FormValidation.error(ex3.getMessage());
+		   }
+        return FormValidation.ok();
+	}
+	
+	/*public FormValidation doCheckServername(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String servername) 						throws IOException, ServletException {
+	
+	String url = nagiosUrl + "/cgi-bin/status.cgi";
+	String param = "host=all";
+	boolean status;
+		if (servername.length() == 0)
+                        return FormValidation.error("Enter the Servername");
+
+		try{
+		String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
+		status = data.contains(servername);
+                if(!(status))
+                        return FormValidation.error("Unable to find " +servername);
+		}catch(Exception ex){
+			return FormValidation.error(ex.getMessage());
+		}
+	return FormValidation.ok();
+	}
+
+        public FormValidation doCheckJobname(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String jobname)                                            throws IOException, ServletException {
+
+        String url = nagiosUrl + "/cgi-bin/status.cgi";
+        String param = "host=all";
+	boolean status;
+                if (jobname.length() == 0)
+                        return FormValidation.error("Enter the Job/Service name");
+                try{
+                String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
+		status = data.contains(jobname);
+                if(!(status))
+                        return FormValidation.error("Unable to find " +jobname+"\n"+data);
+		}catch(Exception ex){
+                        return FormValidation.error(ex.getMessage());
+		}
+        return FormValidation.ok();
+        }*/
+
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
             // Indicates that this builder can be used with all kinds of project types 
@@ -332,6 +406,7 @@ public class NagiosConnect extends Builder {
         }
 
         /**
+
          * This human readable name is used in the configuration screen.
          */
         public String getDisplayName() {

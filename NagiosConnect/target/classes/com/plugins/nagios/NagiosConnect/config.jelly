@@ -9,10 +9,13 @@
     Creates a text field that shows the value of the "name" property.
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
-  <f:entry title="Server Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/servername" field="servername">
+  <f:entry title="Server Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/servername" field="servername"
+	checkUrl="'DescriptorImpl/NagiosConnect/checkNagiosUrl?nagiosUrl='+escape(this.nagiosUrl)">	
     <f:textbox />
   </f:entry>
-  <f:entry title="Job Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/jobname" field="jobname">
+
+  <f:entry title="Job Name" help="/descriptor/com.plugins.nagios.NagiosConnect/help/jobname" field="jobname"
+	checkUrl="'DescriptorImpl/NagiosConnect/checkJobname?jobname='+escape(this.jobname)">
     <f:textbox />
   </f:entry>
   <f:entry title="Job Holdtime (in min(s))" help="/descriptor/com.plugins.nagios.NagiosConnect/help/minutes" field="minutes"
