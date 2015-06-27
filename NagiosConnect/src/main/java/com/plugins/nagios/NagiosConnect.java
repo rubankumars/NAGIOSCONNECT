@@ -364,42 +364,38 @@ public class NagiosConnect extends Builder {
 	
 	public FormValidation doCheckServername(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String servername) 						throws IOException, ServletException {
 	
-	    public static String Nurl = getDescriptor().getNagiosUrl();
-            //final String user = getDescriptor().getNagiosUser();
-            //final String password = getDescriptor().getNagiosPassword();
-	
-	String url = nagiosUrl + "/cgi-bin/status.cgi";
-	String param = "host=all";
-	boolean status;
+	//String url = nagiosUrl + "/cgi-bin/status.cgi";
+	//String param = "host=all";
+	//boolean status;
 		if (servername.length() == 0)
                         return FormValidation.error("Enter the Servername");
 
-		try{
-		String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
-		status = data.contains(servername);
-                if(!(status))
-                        return FormValidation.error("Unable to find " +servername);
-		}catch(Exception ex){
-			return FormValidation.error(ex.getMessage());
-		}
+	//	try{
+	//	String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
+	//	status = data.contains(servername);
+        //      if(!(status))
+        //              return FormValidation.error("Unable to find " +servername+ " - " +data);
+	//	}catch(Exception ex){
+	//		return FormValidation.error(ex.getMessage());
+	//	}
 	return FormValidation.ok();
 	}
 
         public FormValidation doCheckJobname(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String jobname)                                            throws IOException, ServletException {
 
-        String url = nagiosUrl + "/cgi-bin/status.cgi";
-        String param = "host=all";
-	boolean status;
+        //String url = nagiosUrl + "/cgi-bin/status.cgi";
+        //String param = "host=all";
+	//boolean status;
                 if (jobname.length() == 0)
                         return FormValidation.error("Enter the Job/Service name");
-                try{
-                String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
-		status = data.contains(jobname);
-                if(!(status))
-                        return FormValidation.error("Unable to find " +jobname+"\n"+data);
-		}catch(Exception ex){
-                        return FormValidation.error(ex.getMessage());
-		}
+          //      try{
+          //    String data = excutePost(url,param,nagiosUser,nagiosPassword,sslCheck);
+	  //	status = data.contains(jobname);
+          //    if(!(status))
+          //            return FormValidation.error("Unable to find " +jobname+"\n"+data);
+	  //	}catch(Exception ex){
+          //            return FormValidation.error(ex.getMessage());
+	  //     }
         return FormValidation.ok();
         }
 
