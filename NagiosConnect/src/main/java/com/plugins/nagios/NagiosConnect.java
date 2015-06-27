@@ -87,11 +87,11 @@ public class NagiosConnect extends Builder {
     }
 
 	//Create all-trusting trust manager
-	static TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+	static TrustManager[] trstcrt = new TrustManager[] {new X509TrustManager() {
        		 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
             		return null;
        		 }	
-        	 public void checkClientTrusted(X509Certificate[] certs, String authType) {
+         	 public void checkClientTrusted(X509Certificate[] certs, String authType) {
         	 }
         	 public void checkServerTrusted(X509Certificate[] certs, String authType) {
         	 }
@@ -103,7 +103,7 @@ public class NagiosConnect extends Builder {
         SSLContext sc;
 		try {
 			sc = SSLContext.getInstance("SSL");
-			sc.init(null, trustAllCerts, new java.security.SecureRandom());
+			sc.init(null, trstcrt, new java.security.SecureRandom());
 			HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 		} catch (NoSuchAlgorithmException e) {
 			throw e;
@@ -112,13 +112,13 @@ public class NagiosConnect extends Builder {
 		}
 
         //Create all-trusting host name verifier
-        HostnameVerifier allHostsValid = new HostnameVerifier() {
+        HostnameVerifier validAllHosts = new HostnameVerifier() {
             public boolean verify(String hostname, SSLSession session) {
                 return true;
             }
         };
         //Install the all-trusting host verifier
-        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        HttpsURLConnection.setDefaultHostnameVerifier(validAllHosts);
 	}
 
 	//Authenticates Nagios application and create a connection
@@ -145,7 +145,7 @@ public class NagiosConnect extends Builder {
 	}
 
 	public static String excutePost(String NAGIOSURL, String URLPARAMETER, String user, String password, boolean sslCheck) throws Exception{
-			final String username = user;
+				final String username = user;
 			final String pass = password;
 			final boolean ssl = sslCheck;
 		  try {
@@ -156,12 +156,15 @@ public class NagiosConnect extends Builder {
 			
 			connection = nagiosAuth(NAGIOSURL,username,pass);
 		    	connection.setRequestMethod("POST");
-		    	connection.setRequestProperty("Content-Type", 
-		        "application/x-www-form-urlencoded");
+
+			// setting the request property to ensure a robust data transfer
+		    	connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		    	connection.setRequestProperty("Content-Length",Integer.toString(URLPARAMETER.getBytes().length));
-		    	connection.setRequestProperty("Content-Language", "en-US");  
-		    	connection.setUseCaches(false);
-		    	connection.setDoOutput(true);
+		    	connection.setRequestProperty("Content-Language", "en-US"); 
+
+		    	connection.setUseCaches(false); // Some protocols do caching of documents. Occasionally, it is important to be able to "tunnel through" and ignore the caches (e.g., the "reload" button in a browser). If the UseCaches flag on a connection is true, the connection is allowed to use whatever caches it can. If false, caches are to be ignored. The default value comes from DefaultUseCaches, which defaults to true.
+
+		    	connection.setDoOutput(true);  // A URL connection can be used for input and/or output. Set the DoOutput flag to true if you intend to use the URL connection for output, false if not. The default is false.
 
 		    	//Send request
 		    	DataOutputStream wr = new DataOutputStream (
@@ -182,9 +185,6 @@ public class NagiosConnect extends Builder {
 		    	return response.toString();
 		  	} catch (Exception e) {
 				throw e;
-			//	StringWriter errors =  new StringWriter();
-			//	e.printStackTrace(new PrintWriter(errors));
-			//	return errors.toString();
 		  	} finally {
 		    		if(connection != null) {
 		      		connection.disconnect(); 
@@ -362,7 +362,11 @@ public class NagiosConnect extends Builder {
         return FormValidation.ok();
 	}
 	
-	/*public FormValidation doCheckServername(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String servername) 						throws IOException, ServletException {
+	public FormValidation doCheckServername(@QueryParameter String nagiosUrl, @QueryParameter String nagiosUser,                                                     @QueryParameter String nagiosPassword, @QueryParameter boolean sslCheck, @QueryParameter String servername) 						throws IOException, ServletException {
+	
+	    public static String Nurl = getDescriptor().getNagiosUrl();
+            //final String user = getDescriptor().getNagiosUser();
+            //final String password = getDescriptor().getNagiosPassword();
 	
 	String url = nagiosUrl + "/cgi-bin/status.cgi";
 	String param = "host=all";
@@ -397,7 +401,7 @@ public class NagiosConnect extends Builder {
                         return FormValidation.error(ex.getMessage());
 		}
         return FormValidation.ok();
-        }*/
+        }
 
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
