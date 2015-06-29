@@ -100,11 +100,11 @@ public class NagiosConnect extends Builder {
 
 	public static void sslIgnore() throws KeyManagementException, NoSuchAlgorithmException{
         //Install the all-trusting trust manager
-        SSLContext sc;
+        SSLContext sslctx;
 		try {
-			sc = SSLContext.getInstance("SSL");
-			sc.init(null, trstcrt, new java.security.SecureRandom());
-			HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+			sslctx = SSLContext.getInstance("SSL");
+			sslctx.init(null, trstcrt, new java.security.SecureRandom());
+			HttpsURLConnection.setDefaultSSLSocketFactory(sslctx.getSocketFactory());
 		} catch (NoSuchAlgorithmException e) {
 			throw e;
 	 	}catch (KeyManagementException e) {
@@ -167,22 +167,22 @@ public class NagiosConnect extends Builder {
 		    	connection.setDoOutput(true);  // A URL connection can be used for input and/or output. Set the DoOutput flag to true if you intend to use the URL connection for output, false if not. The default is false.
 
 		    	//Send request
-		    	DataOutputStream wr = new DataOutputStream (
+		    	DataOutputStream dataoutstrm = new DataOutputStream (
 		        connection.getOutputStream());
-		    	wr.writeBytes(URLPARAMETER);
-		    	wr.close();
+		    	dataoutstrm.writeBytes(URLPARAMETER);
+		    	dataoutstrm.close();
 
 		    	//Get Response  
-		    	InputStream is = connection.getInputStream();
-		    	BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-		  	StringBuffer response = new StringBuffer();
-		    	String line;
-		    	while((line = rd.readLine()) != null) {
-		      		response.append(line);
-		      		response.append('\r');
+		    	InputStream inptstr = connection.getInputStream();
+		    	BufferedReader buffrdr = new BufferedReader(new InputStreamReader(inptstr));
+		  	StringBuffer url_response = new StringBuffer();
+		    	String strReadline;
+		    	while((strReadline = buffrdr.readLine()) != null) {
+		      		url_response.append(strReadline);
+		      		url_response.append('\r');
 		      	}
-		    	rd.close();
-		    	return response.toString();
+		    	buffrdr.close();
+		    	return url_response.toString();
 		  	} catch (Exception e) {
 				throw e;
 		  	} finally {
